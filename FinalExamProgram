@@ -1,0 +1,51 @@
+import sqlite3
+from wsgiref.simple_server import make_server
+
+conn=sqlite3.connect("final_exam.sqlite")
+
+def DatabaseRetrieval(environ, start_response):
+    
+    message=""
+    status = '200 OK'
+    headers = [('Content-type', 'html; charset=utf-8')]
+    start_response(status, headers)
+    
+    message += "<h1>World Facts</h1>"
+    
+    message += "Available fields from the database:<br>"
+    
+    cursor3 = conn.cursor()
+    result3 = cursor3.execute("select field from Facts")
+    
+    removeDupList = []
+    for row in result3:
+        dup = False
+        for i in removeDupList:
+            if ( str(i) == str(row) ):
+                dup = True
+                break
+        if (not dup):
+            removeDupList.append(str(row))
+            message += str(row).split("'")[1].split("'")[0] + "<br>"
+        
+    message += "<form><br>Field:<input type=text name='field'>"
+    message += "<br><br><input type='submit' name='Submit' ></form>"
+
+    response2 = ""
+    
+    if(len(environ['QUERY_STRING'])>1):
+        message += "<br> Your data has been received:"
+        response2 = environ['QUERY_STRING'].split("&")[0].split("=")[1]
+    
+    result3=cursor3.execute("select Fact from Facts where field=\'"+response2+"\'")
+    message += "<br>Some facts about "+response2+" follow:<br>"
+    for row in result3:
+        message += str(row) + "<br>"
+    
+    return[bytes(message,'utf-8')]
+
+httpd = make_server('', 8000, DatabaseRetrieval)
+print("Serving on port 8000...")
+
+httpd.serve_forever()
+conn.close()
